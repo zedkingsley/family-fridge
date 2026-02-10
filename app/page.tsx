@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MAGNETS, PILLAR_CONFIG, Pillar } from '@/lib/magnets';
 
 type Screen = 'home' | 'fridge' | 'my-board' | 'family' | 'add-quote' | 'pick-question' | 'pass-spotlight' | 'wisdom' | 'archive';
@@ -96,10 +96,9 @@ export default function Home() {
   const [spotlightDay, setSpotlightDay] = useState(4);
   const [spotlightHistory, setSpotlightHistory] = useState(SPOTLIGHT_HISTORY);
   const [tonightsQuestion, setTonightsQuestion] = useState<string | null>("What made you laugh today?");
-  const [questionPicker, setQuestionPicker] = useState('eleanor');
+  const [questionPicker] = useState('eleanor');
   const [questionPickedBy, setQuestionPickedBy] = useState('dad');
   const [discussed, setDiscussed] = useState(false);
-  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
   
   // Add quote state
   const [quoteText, setQuoteText] = useState('');
@@ -111,8 +110,7 @@ export default function Home() {
   const [passReason, setPassReason] = useState('');
 
   // Screen transition
-  const navigateTo = (newScreen: Screen, direction: 'left' | 'right' = 'left') => {
-    setSlideDirection(direction);
+  const navigateTo = (newScreen: Screen, _direction: 'left' | 'right' = 'left') => {
     setPrevScreen(screen);
     setScreen(newScreen);
   };
@@ -120,8 +118,6 @@ export default function Home() {
   const getMember = (id: string) => FAMILY.find(m => m.id === id);
   const pinnedItems = items.filter(i => i.status === 'pinned');
   const rotationItems = items.filter(i => i.status === 'rotation');
-  const personalItems = items.filter(i => i.status === 'personal');
-  const archivedItems = items.filter(i => i.status === 'archived');
 
   const handleAddQuote = () => {
     if (!quoteText.trim() || !quoteSaidBy) return;
@@ -220,7 +216,6 @@ export default function Home() {
             onPickQuestion={() => navigateTo('pick-question')}
             onPassSpotlight={() => navigateTo('pass-spotlight')}
             pinnedItems={pinnedItems.slice(0, 4)}
-            rotationItems={rotationItems.slice(0, 2)}
             getMember={getMember}
             onGoToFridge={() => navigateTo('fridge')}
             onGoToWisdom={() => navigateTo('wisdom')}
@@ -353,7 +348,7 @@ export default function Home() {
 function HomeScreen({ 
   questionPicker, tonightsQuestion, questionPickedBy, discussed, onDiscussed,
   spotlightHolder, spotlightDay, onPickQuestion, onPassSpotlight,
-  pinnedItems, rotationItems, getMember, onGoToFridge, onGoToWisdom
+  pinnedItems, getMember, onGoToFridge, onGoToWisdom
 }: {
   questionPicker: FamilyMember;
   tonightsQuestion: string | null;
@@ -365,7 +360,6 @@ function HomeScreen({
   onPickQuestion: () => void;
   onPassSpotlight: () => void;
   pinnedItems: FridgeItem[];
-  rotationItems: FridgeItem[];
   getMember: (id: string) => FamilyMember | undefined;
   onGoToFridge: () => void;
   onGoToWisdom: () => void;
@@ -1248,5 +1242,3 @@ function WisdomLibraryScreen({ magnets, addedIds, onAdd, onBack }: {
     </div>
   );
 }
-
-const FAMILY_MEMBERS = FAMILY; // For Archive filter
