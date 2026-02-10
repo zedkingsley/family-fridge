@@ -11,12 +11,12 @@ export interface Magnet {
   tags: string[];
 }
 
-export const PILLAR_CONFIG: Record<Pillar, { icon: string; color: string; label: string }> = {
-  identity: { icon: '🪞', color: '#F59E0B', label: 'Identity' },
-  community: { icon: '🤝', color: '#3B82F6', label: 'Community' },
-  delight: { icon: '🎈', color: '#EF4444', label: 'Delight' },
-  effort: { icon: '💪', color: '#10B981', label: 'Effort' },
-  wonder: { icon: '✨', color: '#8B5CF6', label: 'Wonder' },
+export const PILLAR_CONFIG: Record<Pillar, { emoji: string; icon: string; color: string; label: string; name: string }> = {
+  identity: { emoji: '🪞', icon: '🪞', color: '#F59E0B', label: 'Identity', name: 'Identity' },
+  community: { emoji: '🤝', icon: '🤝', color: '#3B82F6', label: 'Community', name: 'Community' },
+  delight: { emoji: '🎈', icon: '🎈', color: '#EF4444', label: 'Delight', name: 'Delight' },
+  effort: { emoji: '💪', icon: '💪', color: '#10B981', label: 'Effort', name: 'Effort' },
+  wonder: { emoji: '✨', icon: '✨', color: '#8B5CF6', label: 'Wonder', name: 'Wonder' },
 };
 
 export const MAGNETS: Magnet[] = [
