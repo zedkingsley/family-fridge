@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { MAGNETS, PILLAR_CONFIG, Pillar } from '@/lib/magnets';
+import { WISDOM_PACKS, WisdomPack, WisdomCard } from '@/lib/packs';
 
-type Screen = 'home' | 'fridge' | 'my-board' | 'family' | 'add-quote' | 'pick-question' | 'pass-spotlight' | 'wisdom' | 'archive';
+type Screen = 'home' | 'fridge' | 'my-board' | 'family' | 'add-quote' | 'pick-question' | 'pass-spotlight' | 'wisdom' | 'archive' | 'browse-packs' | 'swipe-pack';
 type FridgeStatus = 'personal' | 'rotation' | 'pinned' | 'archived';
 
 interface FamilyMember {
@@ -109,6 +110,10 @@ export default function Home() {
   const [passTo, setPassTo] = useState('');
   const [passReason, setPassReason] = useState('');
 
+  // Swipe pack state
+  const [activePack, setActivePack] = useState<WisdomPack | null>(null);
+  const [swipedCards, setSwipedCards] = useState<Set<string>>(new Set());
+
   // Screen transition
   const navigateTo = (newScreen: Screen, _direction: 'left' | 'right' = 'left') => {
     setPrevScreen(screen);
@@ -180,6 +185,29 @@ export default function Home() {
     navigateTo('home', 'right');
   };
 
+  const handleStartPack = (pack: WisdomPack) => {
+    setActivePack(pack);
+    setSwipedCards(new Set());
+    navigateTo('swipe-pack');
+  };
+
+  const handleSwipeCard = (card: WisdomCard, action: 'pass' | 'add' | 'pin' | 'rotation') => {
+    setSwipedCards(prev => new Set([...prev, card.id]));
+    
+    if (action !== 'pass') {
+      const newItem: FridgeItem = {
+        id: `pack-${Date.now()}`,
+        type: 'wisdom',
+        content: card.text,
+        source: card.source || card.attribution || activePack?.name || 'Wisdom Pack',
+        capturedBy: 'dad',
+        status: action === 'pin' ? 'pinned' : action === 'rotation' ? 'rotation' : 'personal',
+        createdAt: new Date(),
+      };
+      setItems([newItem, ...items]);
+    }
+  };
+
   return (
     <div className="min-h-screen max-w-md mx-auto bg-gradient-to-b from-[#FEF7ED] to-[#FFF8F0] relative overflow-hidden">
       {/* Header */}
@@ -219,6 +247,7 @@ export default function Home() {
             getMember={getMember}
             onGoToFridge={() => navigateTo('fridge')}
             onGoToWisdom={() => navigateTo('wisdom')}
+            onGoToPacks={() => navigateTo('browse-packs')}
           />
         )}
 
@@ -304,6 +333,25 @@ export default function Home() {
             onBack={() => navigateTo('home', 'right')}
           />
         )}
+
+        {screen === 'browse-packs' && (
+          <BrowsePacksScreen
+            packs={WISDOM_PACKS}
+            onSelectPack={handleStartPack}
+            onBack={() => navigateTo('home', 'right')}
+            onGoToFamily={() => navigateTo('wisdom')}
+          />
+        )}
+
+        {screen === 'swipe-pack' && activePack && (
+          <SwipePackScreen
+            pack={activePack}
+            swipedCards={swipedCards}
+            onSwipe={handleSwipeCard}
+            onBack={() => navigateTo('browse-packs', 'right')}
+            addedContents={items.map(i => i.content)}
+          />
+        )}
       </main>
 
       {/* FAB */}
@@ -348,7 +396,7 @@ export default function Home() {
 function HomeScreen({ 
   questionPicker, tonightsQuestion, questionPickedBy, discussed, onDiscussed,
   spotlightHolder, spotlightDay, onPickQuestion, onPassSpotlight,
-  pinnedItems, getMember, onGoToFridge, onGoToWisdom
+  pinnedItems, getMember, onGoToFridge, onGoToWisdom, onGoToPacks
 }: {
   questionPicker: FamilyMember;
   tonightsQuestion: string | null;
@@ -363,6 +411,7 @@ function HomeScreen({
   getMember: (id: string) => FamilyMember | undefined;
   onGoToFridge: () => void;
   onGoToWisdom: () => void;
+  onGoToPacks: () => void;
 }) {
   const needsPick = !tonightsQuestion;
   
@@ -464,20 +513,20 @@ function HomeScreen({
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-2">
         <button 
+          onClick={onGoToPacks}
+          className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200 hover:border-indigo-300 hover:shadow-sm transition-all text-left group"
+        >
+          <span className="text-2xl">🃏</span>
+          <p className="font-semibold text-stone-800 mt-2">Wisdom Packs</p>
+          <p className="text-xs text-stone-500">Swipe to discover wisdom</p>
+        </button>
+        <button 
           onClick={onGoToWisdom}
           className="bg-white rounded-xl p-4 border border-stone-100 hover:border-purple-200 hover:bg-purple-50/50 transition-all text-left group"
         >
           <span className="text-2xl">📚</span>
-          <p className="font-semibold text-stone-800 mt-2">Wisdom Library</p>
-          <p className="text-xs text-stone-500">Browse 60 philosophy magnets</p>
-        </button>
-        <button 
-          onClick={onGoToFridge}
-          className="bg-white rounded-xl p-4 border border-stone-100 hover:border-amber-200 hover:bg-amber-50/50 transition-all text-left group"
-        >
-          <span className="text-2xl">📸</span>
-          <p className="font-semibold text-stone-800 mt-2">Add Photo</p>
-          <p className="text-xs text-stone-500">Coming soon</p>
+          <p className="font-semibold text-stone-800 mt-2">Family Wisdom</p>
+          <p className="text-xs text-stone-500">60 philosophy magnets</p>
         </button>
       </div>
     </div>
@@ -1238,6 +1287,297 @@ function WisdomLibraryScreen({ magnets, addedIds, onAdd, onBack }: {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// BROWSE PACKS SCREEN
+function BrowsePacksScreen({ packs, onSelectPack, onBack, onGoToFamily }: {
+  packs: WisdomPack[];
+  onSelectPack: (pack: WisdomPack) => void;
+  onBack: () => void;
+  onGoToFamily: () => void;
+}) {
+  return (
+    <div className="p-4 space-y-4">
+      <button onClick={onBack} className="text-stone-500 hover:text-stone-700 transition-colors flex items-center gap-1">
+        <span>←</span> Back
+      </button>
+
+      <div>
+        <h1 className="text-xl font-bold text-stone-800 flex items-center gap-2">
+          🃏 Wisdom Packs
+        </h1>
+        <p className="text-stone-500 text-sm">Swipe through curated wisdom collections</p>
+      </div>
+
+      {/* Family Wisdom Special Card */}
+      <button
+        onClick={onGoToFamily}
+        className="w-full bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 border-2 border-amber-200 text-left hover:border-amber-300 hover:shadow-md transition-all group"
+      >
+        <div className="flex items-center gap-4">
+          <span className="text-4xl">🪞</span>
+          <div className="flex-1">
+            <p className="font-bold text-amber-900 text-lg">Family Wisdom</p>
+            <p className="text-amber-700 text-sm">60 magnets from your family philosophy</p>
+          </div>
+          <span className="text-amber-400 group-hover:translate-x-1 transition-transform">→</span>
+        </div>
+      </button>
+
+      <div className="pt-2">
+        <h2 className="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-3">Explore More</h2>
+        <div className="grid gap-3">
+          {packs.map(pack => (
+            <button
+              key={pack.id}
+              onClick={() => onSelectPack(pack)}
+              className="w-full bg-white rounded-xl p-4 border border-stone-100 text-left hover:border-stone-200 hover:shadow-md transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div 
+                  className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl"
+                  style={{ backgroundColor: `${pack.color}15` }}
+                >
+                  {pack.emoji}
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-stone-800">{pack.name}</p>
+                  <p className="text-stone-500 text-sm">{pack.description}</p>
+                  <p className="text-xs text-stone-400 mt-1">{pack.cards.length} cards</p>
+                </div>
+                <span className="text-stone-300 group-hover:text-stone-400 group-hover:translate-x-1 transition-all">→</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// SWIPE PACK SCREEN
+function SwipePackScreen({ pack, swipedCards, onSwipe, onBack, addedContents }: {
+  pack: WisdomPack;
+  swipedCards: Set<string>;
+  onSwipe: (card: WisdomCard, action: 'pass' | 'add' | 'pin' | 'rotation') => void;
+  onBack: () => void;
+  addedContents: string[];
+}) {
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [showActions, setShowActions] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchDelta, setTouchDelta] = useState(0);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const remainingCards = pack.cards.filter(c => !swipedCards.has(c.id));
+  const currentCard = remainingCards[0];
+  const progress = ((pack.cards.length - remainingCards.length) / pack.cards.length) * 100;
+
+  const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+    setTouchStart(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
+    if (touchStart === null) return;
+    const delta = e.touches[0].clientX - touchStart;
+    setTouchDelta(delta);
+  };
+
+  const handleTouchEnd = () => {
+    if (Math.abs(touchDelta) > 100) {
+      handleSwipe(touchDelta > 0 ? 'add' : 'pass');
+    }
+    setTouchStart(null);
+    setTouchDelta(0);
+  };
+
+  const handleSwipe = (action: 'pass' | 'add') => {
+    if (!currentCard) return;
+    setSwipeDirection(action === 'add' ? 'right' : 'left');
+    setTimeout(() => {
+      onSwipe(currentCard, action);
+      setSwipeDirection(null);
+    }, 200);
+  };
+
+  const handleLongPressAction = (action: 'pin' | 'rotation') => {
+    if (!currentCard) return;
+    onSwipe(currentCard, action);
+    setShowActions(false);
+  };
+
+  const isAlreadyAdded = currentCard && addedContents.includes(currentCard.text);
+
+  if (!currentCard) {
+    return (
+      <div className="p-4 space-y-6">
+        <button onClick={onBack} className="text-stone-500 hover:text-stone-700 transition-colors flex items-center gap-1">
+          <span>←</span> Back
+        </button>
+        <div className="text-center py-16">
+          <span className="text-6xl mb-4 block">✨</span>
+          <h2 className="text-xl font-bold text-stone-800">Pack Complete!</h2>
+          <p className="text-stone-500 mt-2">You've reviewed all {pack.cards.length} cards</p>
+          <button
+            onClick={onBack}
+            className="mt-6 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+          >
+            Browse More Packs
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 min-h-screen flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={onBack} className="text-stone-500 hover:text-stone-700 transition-colors flex items-center gap-1">
+          <span>←</span> Back
+        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{pack.emoji}</span>
+          <span className="text-sm font-medium text-stone-600">{pack.name}</span>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-6">
+        <div className="flex justify-between text-xs text-stone-400 mb-1">
+          <span>{pack.cards.length - remainingCards.length} of {pack.cards.length}</span>
+          <span>{remainingCards.length} remaining</span>
+        </div>
+        <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Card Stack */}
+      <div className="flex-1 flex items-center justify-center relative">
+        {/* Background cards */}
+        {remainingCards.slice(1, 3).map((card, i) => (
+          <div
+            key={card.id}
+            className="absolute w-full max-w-sm bg-white rounded-2xl p-6 shadow-sm border border-stone-100"
+            style={{
+              transform: `scale(${0.95 - i * 0.05}) translateY(${(i + 1) * 8}px)`,
+              zIndex: 10 - i,
+              opacity: 0.5 - i * 0.2,
+            }}
+          />
+        ))}
+
+        {/* Current card */}
+        <div
+          ref={cardRef}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onContextMenu={(e) => { e.preventDefault(); setShowActions(true); }}
+          className={`relative w-full max-w-sm bg-white rounded-2xl p-8 shadow-lg border-2 transition-all duration-200 z-20 ${
+            swipeDirection === 'left' ? '-translate-x-full rotate-[-20deg] opacity-0' :
+            swipeDirection === 'right' ? 'translate-x-full rotate-[20deg] opacity-0' : ''
+          }`}
+          style={{
+            borderColor: pack.color,
+            transform: touchDelta !== 0 
+              ? `translateX(${touchDelta}px) rotate(${touchDelta * 0.05}deg)` 
+              : undefined,
+          }}
+        >
+          {/* Swipe indicators */}
+          <div 
+            className={`absolute top-4 left-4 px-3 py-1 rounded-full bg-red-100 text-red-600 font-bold text-sm transition-opacity ${
+              touchDelta < -50 ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            PASS
+          </div>
+          <div 
+            className={`absolute top-4 right-4 px-3 py-1 rounded-full bg-green-100 text-green-600 font-bold text-sm transition-opacity ${
+              touchDelta > 50 ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            ADD
+          </div>
+
+          {isAlreadyAdded && (
+            <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+              Already added
+            </div>
+          )}
+
+          <div className="text-center">
+            <span className="text-4xl mb-6 block">{pack.emoji}</span>
+            <p className="text-xl font-medium text-stone-800 leading-relaxed">
+              "{currentCard.text}"
+            </p>
+            {(currentCard.source || currentCard.attribution) && (
+              <p className="text-stone-500 mt-4 text-sm">
+                — {currentCard.source || currentCard.attribution}
+              </p>
+            )}
+          </div>
+
+          <p className="text-center text-xs text-stone-400 mt-8">
+            Swipe or tap buttons below • Long press for more options
+          </p>
+        </div>
+
+        {/* Long press action sheet */}
+        {showActions && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center" onClick={() => setShowActions(false)}>
+            <div className="bg-white w-full max-w-md rounded-t-2xl p-4 space-y-2" onClick={e => e.stopPropagation()}>
+              <p className="text-center text-stone-500 text-sm mb-2">Add to...</p>
+              <button
+                onClick={() => handleLongPressAction('pin')}
+                className="w-full py-4 rounded-xl bg-amber-100 text-amber-800 font-semibold hover:bg-amber-200 transition-colors"
+              >
+                📌 Pin to Fridge
+              </button>
+              <button
+                onClick={() => handleLongPressAction('rotation')}
+                className="w-full py-4 rounded-xl bg-blue-100 text-blue-800 font-semibold hover:bg-blue-200 transition-colors"
+              >
+                🔄 Add to Rotation
+              </button>
+              <button
+                onClick={() => setShowActions(false)}
+                className="w-full py-4 rounded-xl bg-stone-100 text-stone-600 font-semibold hover:bg-stone-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex justify-center gap-6 py-6">
+        <button
+          onClick={() => handleSwipe('pass')}
+          className="w-16 h-16 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-2xl hover:bg-red-200 hover:scale-110 active:scale-95 transition-all shadow-sm"
+        >
+          ✕
+        </button>
+        <button
+          onClick={() => setShowActions(true)}
+          className="w-12 h-12 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center text-xl hover:bg-stone-200 transition-all shadow-sm self-center"
+        >
+          ⋯
+        </button>
+        <button
+          onClick={() => handleSwipe('add')}
+          className="w-16 h-16 rounded-full bg-green-100 text-green-500 flex items-center justify-center text-2xl hover:bg-green-200 hover:scale-110 active:scale-95 transition-all shadow-sm"
+        >
+          ♥
+        </button>
       </div>
     </div>
   );
