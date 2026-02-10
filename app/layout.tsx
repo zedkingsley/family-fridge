@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Wisdom Quest",
-  description: "A family practice for passing down what matters",
+  title: "Family Fridge",
+  description: "Your family's fridge door, digital — quotes, wisdom, quests, and rituals",
 };
 
 export const viewport: Viewport = {

@@ -142,5 +142,5 @@ export function getPack(id: string): WisdomPack | undefined {
 
 // Get all pack metadata (without cards, for listing)
 export function getPackList(): Omit<WisdomPack, 'cards'>[] {
-  return WISDOM_PACKS.map(({ cards, ...rest }) => rest);
+  return WISDOM_PACKS.map(({ cards: _cards, ...rest }) => rest);
 }
