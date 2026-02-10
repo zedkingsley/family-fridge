@@ -991,7 +991,7 @@ function PickQuestionScreen({ questions, picker, onPick, onBack }: {
   onBack: () => void;
 }) {
   const [category, setCategory] = useState<string | null>(null);
-  const categories = [...new Set(questions.map(q => q.category))];
+  const categories = Array.from(new Set(questions.map(q => q.category)));
   const filteredQuestions = category 
     ? questions.filter(q => q.category === category)
     : questions;
